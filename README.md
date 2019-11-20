@@ -1,8 +1,8 @@
-#Module purpose
+# Module purpose
 
 The aim of this module is to enhance integration with **simplesamlphp_auth** module, by force triggering **SimpleSAML auth page** redirect when certain criteria are met. 
 
-#How does it work
+# How does it work
 
 Module performs checks on a single redirect triggering page. In order for it to work the cache for anonymous user for that page response is programmatically killed.
 
@@ -16,7 +16,7 @@ To improve the performance, the redirect decision is stored in cookies to a limi
 
 Additionally module provides a special field for user entity, called **SimpleSAML UID** that allows to create a **SimpleSAML mapping** with the existing Drupal users.
 
-#Additional setings
+# Additional setings
 
 - **IP's whitelist**
 Comma separate values of IP or IP ranges that will be redirected to SimpleSAML auth page. 
