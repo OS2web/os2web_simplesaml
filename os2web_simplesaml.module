@@ -16,24 +16,24 @@ use Drupal\Core\Url;
 function os2web_simplesaml_form_simplesamlphp_auth_local_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $config = \Drupal::config('os2web_simplesaml.settings');
 
-  $form['os2web_simplesaml_additional_settings'] = array(
+  $form['os2web_simplesaml_additional_settings'] = [
     '#type' => 'fieldset',
     '#title' => t('OS2Web SimpleSAML additional settings'),
-  );
-  $form['os2web_simplesaml_additional_settings']['redirect_ips'] = array(
+  ];
+  $form['os2web_simplesaml_additional_settings']['redirect_ips'] = [
     '#type' => 'textfield',
     '#title' => t("Redirect IP's to SimpleSAML login"),
     '#default_value' => $config->get('redirect_ips'),
     '#description' => t('Comma separated. Ex. 192.168.1.1,192.168.2.1'),
-  );
-  $form['os2web_simplesaml_additional_settings']['redirect_trigger_path'] = array(
+  ];
+  $form['os2web_simplesaml_additional_settings']['redirect_trigger_path'] = [
     '#type' => 'textfield',
     '#title' => t('Redirect triggering path'),
     '#default_value' => $config->get('redirect_trigger_path'),
     '#description' => t('The path that will trigger the redirect. NB! The caching for that path will be programmatically disabled.'),
     '#required' => TRUE,
-  );
-  $form['os2web_simplesaml_additional_settings']['redirect_cookies_ttl'] = array(
+  ];
+  $form['os2web_simplesaml_additional_settings']['redirect_cookies_ttl'] = [
     '#type' => 'number',
     '#min' => 0,
     '#step' => 10,
@@ -41,7 +41,7 @@ function os2web_simplesaml_form_simplesamlphp_auth_local_settings_form_alter(&$f
     '#default_value' => $config->get('redirect_cookies_ttl'),
     '#description' => t('Number of seconds, after which the positive or negative redirect decision will expire. Setting long time improves the performance, but IP rules change will take longer to become active for all users.'),
     '#required' => TRUE,
-  );
+  ];
 
   $form['#validate'][] = 'os2web_simplesaml_form_validate';
   $form['#submit'][] = 'os2web_simplesaml_form_submit';
@@ -143,7 +143,7 @@ function os2web_simplesaml_form_user_register_form_alter(&$form, FormStateInterf
  *
  * @see os2web_simplesaml_user_form_submit()
  */
-function os2web_simplesaml_user_form_includes(&$form) {
+function os2web_simplesaml_user_form_includes(array &$form) {
   // Getting SimpleSAML existing authname to use as an example.
   $query = \Drupal::database()->select('authmap', 'am')
     ->fields('am', ['authname'])
@@ -155,7 +155,7 @@ function os2web_simplesaml_user_form_includes(&$form) {
     '#type' => 'textfield',
     '#title' => t('SimpleSAML UID'),
     '#access' => \Drupal::currentUser()->hasPermission('change saml authentication setting'),
-    '#description' => $simplesamlExample ? t('Example of the existing SimpleSAML entry from authmap table: <b>@simplesaml</b>', array('@simplesaml' => $simplesamlExample)) : t('Provide a string serves the UID of the user.')
+    '#description' => $simplesamlExample ? t('Example of the existing SimpleSAML entry from authmap table: <b>@simplesaml</b>', ['@simplesaml' => $simplesamlExample]) : t('Provide a string serves the UID of the user.'),
   ];
 
   // Adding custom validation.

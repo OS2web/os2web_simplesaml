@@ -1,3 +1,5 @@
+# OS2Web SimpleSAML Drupal module  [![Build Status](https://travis-ci.org/OS2web/os2web_simplesaml.svg?branch=8.x)](https://travis-ci.org/OS2web/os2web_simplesaml)
+
 # Module purpose
 
 The aim of this module is to enhance integration with **simplesamlphp_auth** module, by force triggering **SimpleSAML auth page** redirect when certain criteria are met. 
