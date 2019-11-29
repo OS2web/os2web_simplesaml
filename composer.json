@@ -4,7 +4,7 @@
     "description": "Enhances integration with simplesamlphp_auth module, by force triggering SimpleSAML auth page redirect when certain criteria are met",
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "license": "GPL-2.0+",
+    "license": "EUPL-1.2",
     "require": {
         "drupal/simplesamlphp_auth": "^3.1"
     }

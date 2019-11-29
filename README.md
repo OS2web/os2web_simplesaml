@@ -1,10 +1,10 @@
 # OS2Web SimpleSAML Drupal module  [![Build Status](https://travis-ci.org/OS2web/os2web_simplesaml.svg?branch=8.x)](https://travis-ci.org/OS2web/os2web_simplesaml)
 
-# Module purpose
+## Module purpose
 
 The aim of this module is to enhance integration with **simplesamlphp_auth** module, by force triggering **SimpleSAML auth page** redirect when certain criteria are met. 
 
-# How does it work
+## How does it work
 
 Module performs checks on a single redirect triggering page. In order for it to work the cache for anonymous user for that page response is programmatically killed.
 
@@ -18,7 +18,7 @@ To improve the performance, the redirect decision is stored in cookies to a limi
 
 Additionally module provides a special field for user entity, called **SimpleSAML UID** that allows to create a **SimpleSAML mapping** with the existing Drupal users.
 
-# Additional setings
+## Additional setings
 
 - **IP's whitelist**
 Comma separate values of IP or IP ranges that will be redirected to SimpleSAML auth page. 
@@ -27,3 +27,35 @@ A certain page that triggers the redirect to SimpleSAML auth page if the criteri
 - **Cookies TTL**
 Stores the redirect response in the cookies for a certain period of time (_defaults: 5min_).
 
+## Install
+
+Module is available to download via composer.
+```
+composer require os2web/os2web_simplesaml
+drush en os2web_simplesaml
+```
+
+## Update
+Updating process for OS2Web SimpleSAML module is similar to usual Drupal 8 module.
+Use Composer's built-in command for listing packages that have updates available:
+
+```
+composer outdated os2web/os2web_simplesaml
+```
+
+## Automated testing and code quality
+See [OS2Web testing and CI information](https://github.com/OS2Web/docs#testing-and-ci)
+
+## Contribution
+
+Project is opened for new features and os course bugfixes.
+If you have any suggestion or you found a bug in project, you are very welcome
+to create an issue in github repository issue tracker.
+For issue description there is expected that you will provide clear and
+sufficient information about your feature request or bug report.
+
+### Code review policy
+See [OS2Web code review policy](https://github.com/OS2Web/docs#code-review)
+
+### Git name convention
+See [OS2Web git name convention](https://github.com/OS2Web/docs#git-guideline)
