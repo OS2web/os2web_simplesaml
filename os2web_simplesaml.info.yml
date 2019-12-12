@@ -3,6 +3,7 @@ type: module
 description: Enhances integration with simplesamlphp_auth module, by force triggering SimpleSAML auth page redirect when certain criteria are met.
 package: OS2Web
 core: 8.x
+core_version_requirement: ^8 || ^9
 configure: simplesamlphp_auth.admin_settings_local
 
 dependencies:
