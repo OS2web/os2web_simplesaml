@@ -51,11 +51,12 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
   public function redirectToSimplesamlLogin(GetResponseEvent $event) {
     // If user is not anonymous, if SimpleSAML is not activated or if PHP_SAPI
     // is cli - don't do any redirects.
-    if (!$this->account->isAnonymous() || !$this->simplesaml->isActivated() || PHP_SAPI === 'cli') {
-      return;
+      $request = $event->getRequest();
+      $saml_login_path = Url::fromRoute('simplesamlphp_auth.saml_login')->toString();
+      if (!$this->account->isAnonymous() || !$this->simplesaml->isActivated() || PHP_SAPI === 'cli' || $request->getRequestUri() == $saml_login_path) {
+       return;
     }
 
-    $request = $event->getRequest();
     $config = \Drupal::config('os2web_simplesaml.settings');
     // Only redirect if we are on redirect triggering page.
     $patterns = str_replace(',', "\n", $config->get('redirect_trigger_path'));
@@ -63,10 +64,10 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
       // Killing cache for redirect triggering page.
       \Drupal::service('page_cache_kill_switch')->trigger();
 
-      // Check has been already performed, wait for the cookies to expire.
-      if ($request->cookies->has('os2web_simplesaml_redirect_to_saml')) {
-        return;
-      }
+    // Check has been already performed, wait for the cookies to expire.
+    // if ($request->cookies->has('os2web_simplesaml_redirect_to_saml')) {
+    //    return;
+    //  }
 
       $simplesamlRedirect = FALSE;
       $remoteIp = $request->getClientIp();
