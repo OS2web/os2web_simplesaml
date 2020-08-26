@@ -64,10 +64,10 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
       \Drupal::service('page_cache_kill_switch')->trigger();
 
       // Check has been already performed, wait for the cookies to expire.
-     /* if ($request->cookies->has('os2web_simplesaml_redirect_to_saml')) {
+      if ($request->cookies->has('os2web_simplesaml_redirect_to_saml')) {
         return;
       }
-*/
+
       $simplesamlRedirect = FALSE;
       $remoteIp = $request->getClientIp();
 
