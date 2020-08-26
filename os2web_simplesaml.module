@@ -28,10 +28,9 @@ function os2web_simplesaml_form_simplesamlphp_auth_local_settings_form_alter(&$f
   ];
   $form['os2web_simplesaml_additional_settings']['redirect_trigger_path'] = [
     '#type' => 'textfield',
-    '#title' => t('Redirect triggering path'),
+    '#title' => t('Redirect triggering paths'),
     '#default_value' => $config->get('redirect_trigger_path'),
-    '#description' => t('The path that will trigger the redirect. NB! The caching for that path will be programmatically disabled.'),
-    '#required' => TRUE,
+    '#description' => t('Comma separated paths that will trigger the redirect The \'*\' character is a wildcard. Ex. /form/*,/node/add/webform NB! The caching for that path will be programmatically disabled.'),
   ];
   $form['os2web_simplesaml_additional_settings']['redirect_cookies_ttl'] = [
     '#type' => 'number',
@@ -59,14 +58,7 @@ function os2web_simplesaml_form_validate(&$form, FormStateInterface $form_state)
       $form_state->setErrorByName('redirect_ips', t('Invalid format, must be comma separated. Ex. 192.168.1.1,192.168.2.1'));
     }
   }
-  if ($form_state->hasValue('redirect_trigger_path')) {
-    $redirect_trigger_path = $form_state->getValue('redirect_trigger_path');
-    $url = Url::fromUserInput($redirect_trigger_path);
-    if (!$url->isRouted()) {
-      $form_state->setErrorByName('redirect_trigger_path', t('Invalid URL, this URL does not exist'));
-    }
-  }
-}
+ }
 
 /**
  * Submit for simplesamlphp_auth_local_settings_form.
