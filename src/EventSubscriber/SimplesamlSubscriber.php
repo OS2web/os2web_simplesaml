@@ -57,6 +57,7 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
 
     $request = $event->getRequest();
     $config = \Drupal::config('os2web_simplesaml.settings');
+
     // Only redirect if we are on redirect triggering page.
     $patterns = str_replace(',', "\n", $config->get('redirect_trigger_path'));
     if (empty($patterns) || \Drupal::service('path.matcher')->matchPath($request->getRequestUri(), $patterns)) {
@@ -102,7 +103,10 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
       if ($simplesamlRedirect) {
         // Get the path (default: '/saml_login') from the
         // 'simplesamlphp_auth.saml_login' route.
-        $saml_login_path = Url::fromRoute('simplesamlphp_auth.saml_login' ,[],  ['query' => \Drupal::service('redirect.destination')->getAsArray()])->toString();
+        $saml_login_path = Url::fromRoute('simplesamlphp_auth.saml_login', [], [
+          'query' => \Drupal::service('redirect.destination')
+            ->getAsArray(),
+        ])->toString();
 
         // Set 5min cookies to prevent further checks and looping redirect.
         setrawcookie('os2web_simplesaml_redirect_to_saml', 'TRUE', time() + $cookies_ttl);
