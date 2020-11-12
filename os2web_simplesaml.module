@@ -6,7 +6,7 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
+use Drupal\user\UserInterface;
 
 /**
  * Implements hook_form_FORM_ID_alter().
@@ -42,8 +42,8 @@ function os2web_simplesaml_form_simplesamlphp_auth_local_settings_form_alter(&$f
     '#required' => TRUE,
   ];
 
-  $form['#validate'][] = 'os2web_simplesaml_form_validate';
-  $form['#submit'][] = 'os2web_simplesaml_form_submit';
+  $form['#validate'][] = 'os2web_simplesaml_auth_local_settings_form_validate';
+  $form['#submit'][] = 'os2web_simplesaml_auth_local_settings_form_submit';
 }
 
 /**
@@ -51,7 +51,7 @@ function os2web_simplesaml_form_simplesamlphp_auth_local_settings_form_alter(&$f
  *
  * Checks provided IP list format.
  */
-function os2web_simplesaml_form_validate(&$form, FormStateInterface $form_state) {
+function os2web_simplesaml_auth_local_settings_form_validate(&$form, FormStateInterface $form_state) {
   if ($form_state->hasValue('redirect_ips')) {
     $redirect_ips = $form_state->getValue('redirect_ips');
     if (preg_match("/[^0-9.,]/", $redirect_ips)) {
@@ -65,7 +65,7 @@ function os2web_simplesaml_form_validate(&$form, FormStateInterface $form_state)
  *
  * Saves redirect_ips into configuration.
  */
-function os2web_simplesaml_form_submit(&$form, FormStateInterface $form_state) {
+function os2web_simplesaml_auth_local_settings_form_submit(&$form, FormStateInterface $form_state) {
   $redirect_ips = $form_state->getValue('redirect_ips');
   $redirect_trigger_path = $form_state->getValue('redirect_trigger_path');
   $redirect_cookies_ttl = $form_state->getValue('redirect_cookies_ttl');
@@ -80,6 +80,148 @@ function os2web_simplesaml_form_submit(&$form, FormStateInterface $form_state) {
   // Invalidating router cache, so that new settings are applied.
   \Drupal::service("router.builder")->rebuild();
 }
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds mapping fields settings to simplesamlphp_auth_syncing_settings_form.
+ */
+function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $config = \Drupal::config('os2web_simplesaml.settings');
+  $fieldsMapping = unserialize($config->get('simplesaml_fields_mapping'));
+
+  /** @var \Drupal\simplesamlphp_auth\Service\SimplesamlphpAuthManager $simplesaml */
+  $simplesaml = \Drupal::service('simplesamlphp_auth.manager');
+  $hasSamlSession = $simplesaml->isAuthenticated();
+
+  // User SimpleSAML Fields.
+  $form['os2web_simplesaml_user_attributes'] = [
+    '#type' => 'details',
+    '#title' => t('Current User SimpleSAML attributes'),
+    '#weight' => -1,
+  ];
+
+  if ($hasSamlSession) {
+    $header = [t('SimpleSAML attribute'), t('Value')];
+    $rows = [];
+    foreach ($simplesaml->getAttributes() as $attr_key => $attr_value) {
+      $values = [
+        '#theme' => 'item_list',
+        '#items' => $attr_value,
+      ];
+
+      $rows[] = [
+        $attr_key,
+        \Drupal::service('renderer')->renderPlain($values),
+      ];
+    }
+
+    $attributesTable = [
+      '#caption' => t('If attribute has nested value, using the attribute without index will fetch the value from first index, like this: </br></br><b>eduPersonAffiliation</b></br></br>If you require value from specific index, e.g. index <b>2</b>, you can fetch it like this: </br></br><b>eduPersonAffiliation[1]</b></br></br>Using <b>eduPersonAffiliation</b> and <b>eduPersonAffiliation[0]</b> will have the same result.</br></br>'),
+      '#theme' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => t('No data'),
+    ];
+
+    $form['os2web_simplesaml_user_attributes'][] = [
+      '#markup' => \Drupal::service('renderer')->renderPlain($attributesTable),
+    ];
+  }
+  else {
+    $form['os2web_simplesaml_user_attributes'][] = [
+      '#markup' => t('Cannot fetch SAML session'),
+    ];
+  }
+
+  // User fields mapping.
+  $form['os2web_simplesaml_user_fields_mapping'] = [
+    '#type' => 'details',
+    '#title' => t('OS2Web User fields mapping'),
+    '#weight' => -1,
+  ];
+
+  $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'] = array(
+    '#type' => 'table',
+    '#header' => array(
+      t('Field'),
+      t('Field type'),
+      t('SimpleSAML attribute'),
+      t('Force sync on every login'),
+      t('Value example'),
+    ),
+  );
+
+  // Disabling those system fields.
+  $disabledFields = ['name', 'mail', 'init'];
+
+  // Among   enabled fields we support mapping of those types only.
+  $allowedFieldTypes = ['email', 'string'];
+
+  $userFields = \Drupal::service('entity_field.manager')->getFieldDefinitions('user', 'user');
+
+  /** @var \Drupal\os2web_simplesaml\Service\SimpleSamlManager $simpleSamlUtils */
+  $simpleSamlUtils = \Drupal::service('os2web_simplesaml_manager');
+
+  foreach ($userFields as $field_key => $field) {
+    if (in_array($field_key, $disabledFields) || !in_array($field->getType(), $allowedFieldTypes)) {
+      continue;
+    }
+
+    $simpleSamlAttr = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
+    $forceSync = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
+
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+      '#plain_text' => $field_key,
+    );
+
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+      '#plain_text' => $field->getType(),
+    );
+
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['simplesaml_attr'] = array(
+      '#type' => 'textfield',
+      '#title' => t('SimpleSAML attribute'),
+      '#title_display' => 'invisible',
+      '#default_value' => $simpleSamlAttr,
+    );
+
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['force_sync'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Force synchronize on every login'),
+      '#title_display' => 'invisible',
+      '#default_value' => $forceSync,
+    );
+
+    if ($hasSamlSession) {
+      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+        '#plain_text' => ($simpleSamlAttr) ? $simpleSamlUtils->extractAttribute($simpleSamlAttr) : NULL,
+      );
+    }
+    else {
+      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+        '#plain_text' => t('Cannot fetch SAML session'),
+      );
+    }
+  }
+
+  $form['#submit'][] = 'os2web_simplesaml_auth_syncing_settings_form_submit';
+}
+
+/**
+ * Submit for simplesamlphp_auth_syncing_settings_form.
+ *
+ * Saves fields mapping into the configuration.
+ */
+function os2web_simplesaml_auth_syncing_settings_form_submit(&$form, FormStateInterface $form_state) {
+  $fieldsMapping = $form_state->getValue('fields_mapping');
+
+  $config = \Drupal::service('config.factory')
+    ->getEditable('os2web_simplesaml.settings');
+  $config->set('simplesaml_fields_mapping', serialize($fieldsMapping));
+  $config->save();
+}
+
 
 /**
  * Implements hook_entity_extra_field_info().
@@ -191,4 +333,43 @@ function os2web_simplesaml_user_form_submit($form, FormStateInterface $form_stat
     $account = $form_state->getFormObject()->getEntity();
     $externalauth->linkExistingAccount($simplesaml_uid, 'simplesamlphp_auth', $account);
   }
+}
+
+/**
+ * Implements hook_simplesamlphp_auth_user_attributes().
+ */
+function os2web_simplesaml_simplesamlphp_auth_user_attributes(UserInterface $account, $attributes) {
+  $userChanged = FALSE;
+
+  $config = \Drupal::config('os2web_simplesaml.settings');
+  $fieldsMapping = unserialize($config->get('simplesaml_fields_mapping'));
+
+  $userFields = \Drupal::service('entity_field.manager')->getFieldDefinitions('user', 'user');
+
+  /** @var \Drupal\os2web_simplesaml\Service\SimpleSamlManager $simpleSamlUtils */
+  $simpleSamlUtils = \Drupal::service('os2web_simplesaml_manager');
+
+  foreach ($userFields as $field_key => $field) {
+
+    $simpleSamlAttr = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
+    $forceSync = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
+
+    if ($simpleSamlAttr) {
+      if ($forceSync || empty($account->get($field_key)->getValue())) {
+        $simpleSamlValue = $simpleSamlUtils->extractAttribute($simpleSamlAttr);
+        $currentValue = $account->get($field_key)->getString();
+
+        if (strcmp($simpleSamlValue, $currentValue) !== 0) {
+          $account->set($field_key, $simpleSamlValue);
+          $userChanged = TRUE;
+        }
+      }
+    }
+  }
+
+  if ($userChanged) {
+    return $account;
+  }
+
+  return FALSE;
 }

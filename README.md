@@ -2,7 +2,7 @@
 
 ## Module purpose
 
-The aim of this module is to enhance integration with **simplesamlphp_auth** module, by force triggering **SimpleSAML auth page** redirect when certain criteria are met. 
+The aim of this module is to enhance integration with **simplesamlphp_auth** module, by force triggering **SimpleSAML auth page** redirect when certain criteria are met.
 
 ## How does it work
 
@@ -20,12 +20,21 @@ Additionally module provides a special field for user entity, called **SimpleSAM
 
 ## Additional setings
 
+### Local authentication
+Path: `/admin/config/people/simplesamlphp_auth/local`
 - **IP's whitelist**
-Comma separate values of IP or IP ranges that will be redirected to SimpleSAML auth page. 
+Comma separate values of IP or IP ranges that will be redirected to SimpleSAML auth page.
 - **Redirect triggering page**
 A certain page that triggers the redirect to SimpleSAML auth page if the criteria pass (_defaults: front page "/"_).
 - **Cookies TTL**
 Stores the redirect response in the cookies for a certain period of time (_defaults: 5min_).
+
+### User info and syncing
+Path: `/admin/config/people/simplesamlphp_auth/sync`
+- **OS2Web user fields mapping** Allows to create mapping between SimpleSAML claims and user profile fields.
+Upon login user fields will be populated using specified SimpleSAML claims.
+
+    Each field mapping also supports param **Force sync on every login**. Having it *OFF* will only populate the field from claim if the field is empty, having this param *ON* will make field to be populated each time user has logged in.
 
 ## Install
 
