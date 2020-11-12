@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\user\UserInterface;
 
 /**
@@ -141,6 +142,14 @@ function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&
     '#weight' => -1,
   ];
 
+  $userFieldsLink = NULL;
+
+  /* @var \Drupal\Core\Routing\RouteProviderInterface $route_provider */
+  $route_provider = \Drupal::service('router.route_provider');
+  if (count($route_provider->getRoutesByNames(['entity.user.field_ui_fields']))) {
+    $userFieldsLink = Url::fromRoute('entity.user.field_ui_fields')->toString();
+  }
+
   $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'] = array(
     '#type' => 'table',
     '#header' => array(
@@ -150,6 +159,7 @@ function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&
       t('Force sync on every login'),
       t('Value example'),
     ),
+    '#caption' => ($userFieldsLink) ? t('User fields can be adde or changed on <a href=":link">account settings page</a>', [':link' => $userFieldsLink]) : NULL,
   );
 
   // Disabling those system fields.
