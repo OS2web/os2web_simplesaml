@@ -90,6 +90,9 @@ function os2web_simplesaml_auth_local_settings_form_submit(&$form, FormStateInte
 function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $config = \Drupal::config('os2web_simplesaml.settings');
   $fieldsMapping = unserialize($config->get('simplesaml_fields_mapping'));
+  if (!is_array($fieldsMapping)) {
+    $fieldsMapping = [];
+  }
 
   /** @var \Drupal\simplesamlphp_auth\Service\SimplesamlphpAuthManager $simplesaml */
   $simplesaml = \Drupal::service('simplesamlphp_auth.manager');
