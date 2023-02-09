@@ -58,9 +58,12 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
     $request = $event->getRequest();
     $config = \Drupal::config('os2web_simplesaml.settings');
 
-    // Only redirect if we are on redirect triggering page.
     $patterns = str_replace(',', "\n", $config->get('redirect_trigger_path'));
-    if (empty($patterns) || \Drupal::service('path.matcher')->matchPath($request->getRequestUri(), $patterns)) {
+
+    // Only redirect if we are on redirect triggering page, and current path is
+    // not /saml_login.
+    if (!\Drupal::service('path.matcher')->matchPath($request->getPathInfo(), '/saml_login') &&
+      (empty($patterns) || \Drupal::service('path.matcher')->matchPath($request->getRequestUri(), $patterns))) {
       // Killing cache for redirect triggering page.
       \Drupal::service('page_cache_kill_switch')->trigger();
 
