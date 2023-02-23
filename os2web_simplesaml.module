@@ -153,68 +153,75 @@ function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&
     $userFieldsLink = Url::fromRoute('entity.user.field_ui_fields')->toString();
   }
 
-  $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'] = array(
+  $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'] = [
     '#type' => 'table',
-    '#header' => array(
+    '#header' => [
       t('Field'),
       t('Field type'),
       t('SimpleSAML attribute'),
       t('Force sync on every login'),
       t('Value example'),
-    ),
+    ],
     '#caption' => ($userFieldsLink) ? t('User fields can be adde or changed on <a href=":link">account settings page</a>', [':link' => $userFieldsLink]) : NULL,
-  );
+  ];
 
   // Disabling those system fields.
   $disabledFields = ['name', 'mail', 'init'];
 
-  // Among   enabled fields we support mapping of those types only.
-  $allowedFieldTypes = ['email', 'string'];
+  // Among enabled fields we support mapping of those types only.
+  $allowedFieldTypes = ['email', 'string', 'entity_reference'];
 
   $userFields = \Drupal::service('entity_field.manager')->getFieldDefinitions('user', 'user');
 
   /** @var \Drupal\os2web_simplesaml\Service\SimpleSamlManager $simpleSamlUtils */
   $simpleSamlUtils = \Drupal::service('os2web_simplesaml_manager');
 
+  /** @var \Drupal\field\Entity\FieldConfig $field */
   foreach ($userFields as $field_key => $field) {
+    // Limiting field available for mapping.
     if (in_array($field_key, $disabledFields) || !in_array($field->getType(), $allowedFieldTypes)) {
       continue;
     }
 
-    $simpleSamlAttr = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
-    $forceSync = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
+    // If fieldType is entity_reference, we only support taxonomy terms.
+    if ($field->getType() == 'entity_reference' && $field->getSetting('target_type') !== 'taxonomy_term') {
+      continue;
+    }
 
-    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+    $simpleSamlAttr = array_key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
+    $forceSync = array_key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
+
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = [
       '#plain_text' => $field_key,
-    );
+    ];
 
-    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = [
       '#plain_text' => $field->getType(),
-    );
+    ];
 
-    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['simplesaml_attr'] = array(
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['simplesaml_attr'] = [
       '#type' => 'textfield',
       '#title' => t('SimpleSAML attribute'),
       '#title_display' => 'invisible',
       '#default_value' => $simpleSamlAttr,
-    );
+    ];
 
-    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['force_sync'] = array(
+    $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key]['force_sync'] = [
       '#type' => 'checkbox',
       '#title' => t('Force synchronize on every login'),
       '#title_display' => 'invisible',
       '#default_value' => $forceSync,
-    );
+    ];
 
     if ($hasSamlSession) {
-      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = [
         '#plain_text' => ($simpleSamlAttr) ? $simpleSamlUtils->extractAttribute($simpleSamlAttr) : NULL,
-      );
+      ];
     }
     else {
-      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = array(
+      $form['os2web_simplesaml_user_fields_mapping']['fields_mapping'][$field_key][] = [
         '#plain_text' => t('Cannot fetch SAML session'),
-      );
+      ];
     }
   }
 
@@ -357,20 +364,48 @@ function os2web_simplesaml_simplesamlphp_auth_user_attributes(UserInterface $acc
   $config = \Drupal::config('os2web_simplesaml.settings');
   $fieldsMapping = unserialize($config->get('simplesaml_fields_mapping'));
 
+  // Nothing to map.
+  if (empty($fieldsMapping)) {
+    return FALSE;
+  }
+
   $userFields = \Drupal::service('entity_field.manager')->getFieldDefinitions('user', 'user');
 
   /** @var \Drupal\os2web_simplesaml\Service\SimpleSamlManager $simpleSamlUtils */
   $simpleSamlUtils = \Drupal::service('os2web_simplesaml_manager');
 
+  /** @var \Drupal\field\Entity\FieldConfig $field */
   foreach ($userFields as $field_key => $field) {
-
-    $simpleSamlAttr = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
-    $forceSync = key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
+    $simpleSamlAttr = array_key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['simplesaml_attr'] : NULL;
+    $forceSync = array_key_exists($field_key, $fieldsMapping) ? $fieldsMapping[$field_key]['force_sync'] : NULL;
 
     if ($simpleSamlAttr) {
       if ($forceSync || empty($account->get($field_key)->getValue())) {
         $simpleSamlValue = $simpleSamlUtils->extractAttribute($simpleSamlAttr);
         $currentValue = $account->get($field_key)->getString();
+
+        // If fieldType is entity_reference, we only support taxonomy terms.
+        if ($field->getType() == 'entity_reference' && $field->getSetting('target_type') == 'taxonomy_term') {
+          $vid = $field->getSetting('handler_settings')['target_bundles'];
+          $vid = reset($vid);
+
+          // Getting term id.
+          $properties = [
+            'name' => $simpleSamlValue,
+            'vid' => $vid,
+          ];
+          $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties($properties);
+          if ($terms) {
+            $term = reset($terms);
+
+            // Replace simplesaml Value with the term ID.
+            $simpleSamlValue = $term->id();
+          }
+          // Term not found, setting value NULL.
+          else {
+            $simpleSamlValue = NULL;
+          }
+        }
 
         if (strcmp($simpleSamlValue, $currentValue) !== 0) {
           $account->set($field_key, $simpleSamlValue);
