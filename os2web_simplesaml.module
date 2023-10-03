@@ -270,9 +270,12 @@ function os2web_simplesaml_form_user_form_alter(&$form, FormStateInterface $form
   // prefill the field.
   $authmap = \Drupal::service('externalauth.authmap');
   $account = $form_state->getFormObject()->getEntity();
-  $authname = $authmap->get($account->id(), 'simplesamlphp_auth');
-  if ($authname) {
-    $form['os2web_simplesaml_uid']['#default_value'] = $authname;
+
+  if ($account->id()) {
+    $authname = $authmap->get($account->id(), 'simplesamlphp_auth');
+    if ($authname) {
+      $form['os2web_simplesaml_uid']['#default_value'] = $authname;
+    }
   }
 }
 
