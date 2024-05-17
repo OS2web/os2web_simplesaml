@@ -7,7 +7,7 @@ use Drupal\Core\Url;
 use Drupal\simplesamlphp_auth\Service\SimplesamlphpAuthManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -45,10 +45,10 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
   /**
    * Redirect anonymous user to SimpleSAML auth page if IP matches redirect IPs.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
    *   The subscribed event.
    */
-  public function redirectToSimplesamlLogin(GetResponseEvent $event) {
+  public function redirectToSimplesamlLogin(RequestEvent $event) {
     // If user is not anonymous, if SimpleSAML is not activated or if PHP_SAPI
     // is cli - don't do any redirects.
     if (!$this->account->isAnonymous() || !$this->simplesaml->isActivated() || PHP_SAPI === 'cli') {
@@ -117,7 +117,6 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
         // Redirect directly to the external IdP.
         $response = new RedirectResponse($saml_login_path, RedirectResponse::HTTP_FOUND);
         $event->setResponse($response);
-        $event->stopPropagation();
       }
       else {
         // Set 5min cookies to prevent further checks and looping redirect.
