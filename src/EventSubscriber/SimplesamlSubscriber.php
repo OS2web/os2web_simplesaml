@@ -30,6 +30,11 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
   protected $account;
 
   /**
+   * Cookie name for redirect to SimpleSAML.
+   */
+  protected const REDIRECT_TO_SAML_COOKIE_NAME = 'os2web_simplesaml_redirect_to_saml';
+
+  /**
    * {@inheritdoc}
    *
    * @param \Drupal\simplesamlphp_auth\Service\SimplesamlphpAuthManager $simplesaml
@@ -52,11 +57,14 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
     // If user is not anonymous, if SimpleSAML is not activated or if PHP_SAPI
     // is cli - don't do any redirects.
     if (!$this->account->isAnonymous() || !$this->simplesaml->isActivated() || PHP_SAPI === 'cli') {
-      return;
+      //return;
     }
 
     $request = $event->getRequest();
     $config = \Drupal::config('os2web_simplesaml.settings');
+    $cookies_ttl = $config->get('redirect_cookies_ttl');
+
+    $this->setCookies(TRUE, $cookies_ttl);
 
     $patterns = str_replace(',', "\n", $config->get('redirect_trigger_path'));
 
@@ -68,7 +76,7 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
       \Drupal::service('page_cache_kill_switch')->trigger();
 
       // Check has been already performed, wait for the cookies to expire.
-      if ($request->cookies->has('os2web_simplesaml_redirect_to_saml')) {
+      if ($request->cookies->has(self::REDIRECT_TO_SAML_COOKIE_NAME)) {
         return;
       }
 
@@ -112,7 +120,7 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
         ])->toString();
 
         // Set 5min cookies to prevent further checks and looping redirect.
-        setrawcookie('os2web_simplesaml_redirect_to_saml', 'TRUE', time() + $cookies_ttl);
+        $this->setCookies(TRUE, $cookies_ttl);
 
         // Redirect directly to the external IdP.
         $response = new RedirectResponse($saml_login_path, RedirectResponse::HTTP_FOUND);
@@ -120,7 +128,7 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
       }
       else {
         // Set 5min cookies to prevent further checks and looping redirect.
-        setrawcookie('os2web_simplesaml_redirect_to_saml', 'FALSE', time() + $cookies_ttl);
+        $this->setCookies(FALSE, $cookies_ttl);
       }
     }
   }
@@ -131,6 +139,24 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents() {
     $events[KernelEvents::REQUEST][] = ['redirectToSimplesamlLogin'];
     return $events;
+  }
+
+  /**
+   * Sets cookies with the specified options.
+   *
+   * @param bool $redirectToSaml
+   *    Determines whether to set the cookie flag to 'TRUE' or 'FALSE'.
+   * @param int $cookies_ttl
+   *    The time-to-live for the cookie in seconds.
+   */
+  private function setCookies(bool $redirectToSaml, int $cookies_ttl):void {
+    $options = [
+      'expires' => time() + $cookies_ttl, // 1 hour
+      'secure' => true,
+      'httponly' => true,
+    ];
+
+    setrawcookie(self::REDIRECT_TO_SAML_COOKIE_NAME, $redirectToSaml ? 'TRUE' : 'FALSE', $options);
   }
 
 }
