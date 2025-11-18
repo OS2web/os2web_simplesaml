@@ -57,7 +57,7 @@ class SimplesamlSubscriber implements EventSubscriberInterface {
     // If user is not anonymous, if SimpleSAML is not activated or if PHP_SAPI
     // is cli - don't do any redirects.
     if (!$this->account->isAnonymous() || !$this->simplesaml->isActivated() || PHP_SAPI === 'cli') {
-      //return;
+      return;
     }
 
     $request = $event->getRequest();
