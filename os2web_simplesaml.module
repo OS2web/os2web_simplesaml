@@ -116,7 +116,7 @@ function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&
 
       $rows[] = [
         $attr_key,
-        \Drupal::service('renderer')->renderPlain($values),
+        \Drupal::service('renderer')->renderInIsolation($values),
       ];
     }
 
@@ -129,7 +129,7 @@ function os2web_simplesaml_form_simplesamlphp_auth_syncing_settings_form_alter(&
     ];
 
     $form['os2web_simplesaml_user_attributes'][] = [
-      '#markup' => \Drupal::service('renderer')->renderPlain($attributesTable),
+      '#markup' => \Drupal::service('renderer')->renderInIsolation($attributesTable),
     ];
   }
   else {
